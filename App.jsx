@@ -14,8 +14,9 @@ const POST_SURVEY_URL = "https://form.jotform.com/263021837569059";
 const EXPECTED_ALERTS = 6;
 const REDIRECT_SECONDS = 15;
 const idFromUrl = () => {
-  try { return (new URLSearchParams(window.location.search).get("id") || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 20); } catch (e) { return ""; }
+    try { return (new URLSearchParams(window.location.search).get("id") || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 20).toUpperCase(); } catch (e) { return ""; }
 };
+const ID_LIST = Array.from({ length: 60 }, (_, i) => "U" + String(i + 1).padStart(2, "0"));
 const FALSE_POSITIVE = [90, 130];
 const DDOS = [150, 220];
 const RANSOM_NAS = [300, 340];
@@ -215,7 +216,7 @@ export default function IotAttackFloorplan() {
   }, [allResolved, playing]);
   useEffect(() => {
     if (countdown === null) return;
-    if (countdown <= 0) { downloadCSV(); setTimeout(() => { window.location.href = surveyUrl(); }, 600); return; }
+        if (countdown <= 0) { window.location.href = surveyUrl(); return; }
     const id = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -358,7 +359,7 @@ export default function IotAttackFloorplan() {
               <div className="mt-8 bg-slate-900 border border-emerald-500/30 rounded-2xl p-6">
                 <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
                   <div className="flex items-center gap-2"><BookOpenCheck size={18} className="text-emerald-400" /><h2 className="text-lg font-semibold text-white">Raport bezpieczeństwa</h2></div>
-                  <button onClick={downloadCSV} className="text-xs font-medium px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25">Pobierz CSV z sesji</button>
+                  
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {ATTACKS.map((a) => {
@@ -448,7 +449,7 @@ export default function IotAttackFloorplan() {
                   <p className="text-sm font-semibold text-sky-200">Ostatni krok: krótka ankieta końcowa</p>
                   <p className="text-xs text-slate-400 mt-1">{countdown !== null && countdown > 0 ? `Za ${countdown} s zostaniesz przekierowany/a automatycznie. Możesz też przejść od razu.` : "Przekierowanie do ankiety…"}</p>
                 </div>
-                <button onClick={() => { setCountdown(null); downloadCSV(); setTimeout(() => { window.location.href = surveyUrl(); }, 600); }} className="text-sm font-medium px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950">Przejdź do ankiety</button>
+                                <button onClick={() => { setCountdown(null); window.location.href = surveyUrl(); }} className="text-sm font-medium px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950">Przejdź do ankiety</button>
               </div>
             )}
 
@@ -458,7 +459,11 @@ export default function IotAttackFloorplan() {
             <h2 className="text-xl font-semibold text-white mb-3">Badanie: reakcja na alerty bezpieczeństwa IoT</h2>
             <p className="text-sm text-slate-400 mb-4">Zobaczysz symulację 4 zdarzeń w sieci domowej (w tym jeden fałszywy alarm). Symulacja zatrzyma się automatycznie przy każdym alercie — wybierz akcję: Izoluj, Blokuj IP lub Ignoruj.</p>
             <label className="text-xs uppercase tracking-wider text-slate-500 mb-1.5 block">ID uczestnika</label>
-            <input value={participantId} onChange={(e) => setParticipantId(e.target.value)} placeholder="np. U01" className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 mb-5 outline-none focus:border-sky-500" />
+                        <select value={participantId} onChange={(e) => setParticipantId(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 mb-5 outline-none focus:border-sky-500">
+              <option value="">— wybierz swój numer —</option>
+              {participantId && !ID_LIST.includes(participantId) && <option value={participantId}>{participantId}</option>}
+              {ID_LIST.map((id) => <option key={id} value={id}>{id}</option>)}
+            </select>
             <button disabled={!participantId.trim()} onClick={() => setShowIntro(false)} className="w-full bg-sky-500 disabled:bg-slate-800 disabled:text-slate-500 hover:bg-sky-400 text-slate-950 font-medium rounded-lg py-2.5 transition-colors">Rozpocznij</button>
           </div>
         </div>
