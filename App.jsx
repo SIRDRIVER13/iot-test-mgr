@@ -140,6 +140,15 @@ export default function IotAttackFloorplan() {
   }, [playing, bounds]);
 
   useEffect(() => {
+    if (playing || t <= 0 || t >= bounds[1]) return;
+    const cur = alertsAt(t);
+    if (cur.length === 0 || !cur.every((a) => resolved[a.key])) return;
+    const id = setTimeout(() => setPlaying(true), 1200);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, t, resolved, bounds]);
+
+  useEffect(() => {
     if (trackRef.current) trackRef.current.style.transform = `translateX(-${page * 50}%)`;
   }, [page]);
 
@@ -201,9 +210,9 @@ export default function IotAttackFloorplan() {
     return `${POST_SURVEY_URL}?${q.toString()}`;
   };
   useEffect(() => {
-    if (!(allDone && allResolved && !playing)) return;
+    if (!(allResolved && !playing)) return;
     setCountdown((c) => (c === null ? REDIRECT_SECONDS : c));
-  }, [allDone, allResolved, playing]);
+  }, [allResolved, playing]);
   useEffect(() => {
     if (countdown === null) return;
     if (countdown <= 0) { downloadCSV(); setTimeout(() => { window.location.href = surveyUrl(); }, 600); return; }
@@ -274,7 +283,7 @@ export default function IotAttackFloorplan() {
                   );
                 })}
                 <button onClick={() => runAttack(null)} className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3 py-2 text-sm font-medium text-slate-300">Wszystkie</button>
-                {!playing && activeAttackCount === 0 && t > 0 && t < bounds[1] && (
+                {!playing && t > 0 && t < bounds[1] && (
                   <button onClick={() => setPlaying(true)} className="flex items-center gap-2 rounded-lg border border-sky-700 bg-sky-900/40 hover:bg-sky-900/60 px-3 py-2 text-sm font-medium text-sky-300">Wznów ▶</button>
                 )}
               </div>
@@ -345,16 +354,7 @@ export default function IotAttackFloorplan() {
               </div>
             </div>
 
-            {allDone && allResolved && (
-              <div className="mt-8 bg-sky-500/10 border border-sky-500/40 rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                  <p className="text-sm font-semibold text-sky-200">Ostatni krok: krótka ankieta końcowa</p>
-                  <p className="text-xs text-slate-400 mt-1">{countdown !== null && countdown > 0 ? `Za ${countdown} s zostaniesz przekierowany/a automatycznie. Możesz też przejść od razu.` : "Przekierowanie do ankiety…"}</p>
-                </div>
-                <button onClick={() => { setCountdown(null); downloadCSV(); setTimeout(() => { window.location.href = surveyUrl(); }, 600); }} className="text-sm font-medium px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950">Przejdź do ankiety</button>
-              </div>
-            )}
-            {allDone ? (
+                        {allDone ? (
               <div className="mt-8 bg-slate-900 border border-emerald-500/30 rounded-2xl p-6">
                 <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
                   <div className="flex items-center gap-2"><BookOpenCheck size={18} className="text-emerald-400" /><h2 className="text-lg font-semibold text-white">Raport bezpieczeństwa</h2></div>
@@ -441,6 +441,16 @@ export default function IotAttackFloorplan() {
         <button onClick={() => setPage(1)} className={`w-2 h-2 rounded-full ${page === 1 ? "bg-cyan-400" : "bg-slate-700"}`} />
         <button onClick={() => setPage(1)} className="p-1"><ChevronRight size={16} className={page === 1 ? "text-slate-700" : "text-slate-300"} /></button>
       </div>
+
+      {allResolved && (
+              <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-2xl bg-slate-900 border border-sky-500/60 shadow-2xl rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <p className="text-sm font-semibold text-sky-200">Ostatni krok: krótka ankieta końcowa</p>
+                  <p className="text-xs text-slate-400 mt-1">{countdown !== null && countdown > 0 ? `Za ${countdown} s zostaniesz przekierowany/a automatycznie. Możesz też przejść od razu.` : "Przekierowanie do ankiety…"}</p>
+                </div>
+                <button onClick={() => { setCountdown(null); downloadCSV(); setTimeout(() => { window.location.href = surveyUrl(); }, 600); }} className="text-sm font-medium px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950">Przejdź do ankiety</button>
+              </div>
+            )}
 
       {showIntro && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-6 z-50">
