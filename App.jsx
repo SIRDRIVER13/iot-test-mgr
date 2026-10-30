@@ -10,6 +10,12 @@ import {
 } from "recharts";
 
 const T_MAX = 600;
+const POST_SURVEY_URL = "https://form.jotform.com/263021837569059";
+const EXPECTED_ALERTS = 6;
+const REDIRECT_SECONDS = 15;
+const idFromUrl = () => {
+  try { return (new URLSearchParams(window.location.search).get("id") || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 20); } catch (e) { return ""; }
+};
 const FALSE_POSITIVE = [90, 130];
 const DDOS = [150, 220];
 const RANSOM_NAS = [300, 340];
@@ -110,7 +116,8 @@ export default function IotAttackFloorplan() {
   const alertShownAt = useRef({});
 
   const [showIntro, setShowIntro] = useState(true);
-  const [participantId, setParticipantId] = useState("");
+  const [participantId, setParticipantId] = useState(idFromUrl());
+  const [countdown, setCountdown] = useState(null);
   const [sessionLog, setSessionLog] = useState([]);
 
   // Playback: advances slowly, and AUTO-PAUSES the instant a new alert becomes
@@ -185,6 +192,25 @@ export default function IotAttackFloorplan() {
     const entry = { participant: participantId, device: alert.dev, scenario: alert.type, action: actionKey, correct: isCorrect ? "tak" : "nie", reaction_s: reactionSec, confidence: alert.confidence, timestamp: new Date().toISOString() };
     setSessionLog((prev) => { const next = [...prev, entry]; saveSession(next); return next; });
   };
+
+  const allResolved = Object.keys(resolved).length >= EXPECTED_ALERTS;
+  const surveyUrl = () => {
+    const ok = sessionLog.filter((e) => e.correct === "tak").length;
+    const avg = sessionLog.length ? (sessionLog.reduce((a, e) => a + Number(e.reaction_s), 0) / sessionLog.length).toFixed(2) : "";
+    const q = new URLSearchParams({ idUczestnika: participantId, trafne: `${ok}/${sessionLog.length}`, czasReakcji: avg });
+    return `${POST_SURVEY_URL}?${q.toString()}`;
+  };
+  useEffect(() => {
+    if (!(allDone && allResolved && !playing)) return;
+    setCountdown((c) => (c === null ? REDIRECT_SECONDS : c));
+  }, [allDone, allResolved, playing]);
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) { downloadCSV(); setTimeout(() => { window.location.href = surveyUrl(); }, 600); return; }
+    const id = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdown]);
 
   const downloadCSV = () => {
     const headers = ["participant", "device", "scenario", "action", "correct", "reaction_s", "confidence", "timestamp"];
@@ -319,6 +345,15 @@ export default function IotAttackFloorplan() {
               </div>
             </div>
 
+            {allDone && allResolved && (
+              <div className="mt-8 bg-sky-500/10 border border-sky-500/40 rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <p className="text-sm font-semibold text-sky-200">Ostatni krok: krótka ankieta końcowa</p>
+                  <p className="text-xs text-slate-400 mt-1">{countdown !== null && countdown > 0 ? `Za ${countdown} s zostaniesz przekierowany/a automatycznie. Możesz też przejść od razu.` : "Przekierowanie do ankiety…"}</p>
+                </div>
+                <button onClick={() => { setCountdown(null); downloadCSV(); setTimeout(() => { window.location.href = surveyUrl(); }, 600); }} className="text-sm font-medium px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950">Przejdź do ankiety</button>
+              </div>
+            )}
             {allDone ? (
               <div className="mt-8 bg-slate-900 border border-emerald-500/30 rounded-2xl p-6">
                 <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
