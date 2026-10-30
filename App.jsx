@@ -197,7 +197,7 @@ export default function IotAttackFloorplan() {
   const surveyUrl = () => {
     const ok = sessionLog.filter((e) => e.correct === "tak").length;
     const avg = sessionLog.length ? (sessionLog.reduce((a, e) => a + Number(e.reaction_s), 0) / sessionLog.length).toFixed(2) : "";
-    const q = new URLSearchParams({ idUczestnika: participantId, trafne: `${ok}/${sessionLog.length}`, czasReakcji: avg });
+    const q = new URLSearchParams({ q3_textbox1: participantId, q4_textbox2: `${ok}/${sessionLog.length}`, q5_textbox3: avg });
     return `${POST_SURVEY_URL}?${q.toString()}`;
   };
   useEffect(() => {
